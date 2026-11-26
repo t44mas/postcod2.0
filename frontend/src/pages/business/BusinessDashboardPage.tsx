@@ -40,7 +40,7 @@ export function BusinessDashboardPage() {
           {dashboard.status === 'active' ? 'Подписка активна' : dashboard.status === 'expired' ? 'Срок подписки истёк' : 'Ожидает оплаты'}
         </span></div>
         <p className="field-hint">Демо-кабинет администратора. Цены и преимущества — модельные допущения.</p>
-        {dashboard.status === 'pending_payment' && <div className="dashboard-notice"><p>Оплатите тестовый счёт, чтобы активировать преимущества компании.</p><a className="button primary" href="/business/connect">К демо-оплате</a></div>}
+        {dashboard.status === 'pending_payment' && <div className="dashboard-notice"><p>Оплатите тестовый счёт, чтобы активировать преимущества компании.</p><a className="button primary" href="/business/invoices">К демо-оплате</a></div>}
         {dashboard.status === 'expired' && <div className="dashboard-notice"><p>Оплаченный период завершён. Преимущества недоступны. В разделе подключения можно начать новый демо-сценарий.</p><a className="button secondary" href="/business/connect">Открыть подключение</a></div>}
 
         <section className="dashboard-kpis" aria-label="Показатели подписки">

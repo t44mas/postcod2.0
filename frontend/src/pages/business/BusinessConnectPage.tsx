@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
+import { BusinessInvoiceCard } from '../../components/BusinessInvoiceCard';
+import { payStoredInvoice } from '../../features/business/invoices';
 import { tariffs } from '../../features/business/tariffs.mjs';
-import { connectionKey, createConnection, parseConnection, payConnection } from '../../features/business/connection';
+import { connectionKey, createConnection, parseConnection } from '../../features/business/connection';
 import type { DemoConnection } from '../../features/business/connection';
 
 const money = (kopecks: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(kopecks / 100);
-const date = (value: string) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value));
 
 export function BusinessConnectPage() {
   const [connection, setConnection] = useState<DemoConnection | null>(() => {
@@ -20,7 +21,6 @@ export function BusinessConnectPage() {
   const [error, setError] = useState('');
   const [resetRequested, setResetRequested] = useState(false);
   const tariff = tariffs.find(item => item.id === (connection?.subscription.tariffId ?? tariffId))!;
-  const isPaid = connection?.invoice.status === 'paid';
 
   function persist(next: DemoConnection) {
     try {
@@ -49,15 +49,12 @@ export function BusinessConnectPage() {
   }
 
   function payDemo() {
+    if (!connection) return;
     try {
-      const latest = parseConnection(localStorage.getItem(connectionKey));
-      if (!latest || latest.subscription.id !== connection?.subscription.id) {
-        setError('Демо-подписка изменилась. Обновите страницу.');
-        return;
-      }
-      // Сохраняем сотрудников, добавленных из другой вкладки после открытия счёта.
-      persist(payConnection(latest));
-    } catch { setError('Не удалось прочитать данные демо-оплаты. Проверьте хранилище браузера.'); }
+      const paid = payStoredInvoice(connection.company.id, connection.invoice.id);
+      setConnection(paid);
+      setError('');
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось выполнить демо-оплату.'); }
   }
 
   return <>
@@ -88,20 +85,10 @@ export function BusinessConnectPage() {
           <div><dt>Скидка на отправление</dt><dd>{money(tariff.shippingDiscount * 100)}</dd></div>
           <div><dt>Скидка на упаковку</dt><dd>{tariff.packagingDiscount ? money(tariff.packagingDiscount * 100) : 'Не включена'}</dd></div>
         </dl></aside>
-      </form> : <section className="invoice-panel" aria-labelledby="invoice-title">
-        <div className="invoice-heading"><h2 id="invoice-title">Тестовый счёт</h2><span className={`invoice-status ${isPaid ? 'paid' : ''}`}>{isPaid ? 'Оплачен (демо)' : 'Ожидает демо-оплаты'}</span></div>
-        <dl className="invoice-details">
-          <div><dt>Номер</dt><dd>ДЕМО-{connection.invoice.id.slice(0, 8).toUpperCase()}</dd></div>
-          <div><dt>Дата счёта</dt><dd>{date(connection.invoice.createdAt)}</dd></div>
-          <div><dt>Компания</dt><dd>{connection.company.name}</dd></div>
-          <div><dt>Тариф</dt><dd>{tariff.name}</dd></div>
-          <div><dt>Период</dt><dd>Один месяц с момента демо-оплаты</dd></div>
-          <div><dt>К оплате</dt><dd><strong>{money(connection.invoice.amountKopecks)}</strong></dd></div>
-        </dl>
-        {isPaid ? <div className="activation-result" role="status"><h3>Подписка активна</h3><p>{connection.company.name} подключена к {tariff.name}.</p><p>Период: {date(connection.subscription.startedAt!)} — {date(connection.subscription.expiresAt!)}</p><a className="button primary" href="/business/dashboard">Перейти в кабинет компании</a></div>
-          : <><p className="field-hint">Это тестовый документ. Кнопка имитирует успешную оплату и активирует подписку на месяц. Банковские данные не требуются.</p><button className="button primary" onClick={payDemo}>Оплатить (демо)</button></>}
+      </form> : <div className="connection-invoice"><BusinessInvoiceCard connection={connection} onPay={payDemo}/>
+        <a className="inline-link invoice-list-link" href="/business/invoices">Все счета компании</a>
         <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить тестовый счёт и подписку этой демо-компании?</p><button className="button secondary" onClick={resetDemo}>Да, начать заново</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Начать демо заново</button>}</div>
-      </section>}
+      </div>}
     </main>
   </>;
 }
