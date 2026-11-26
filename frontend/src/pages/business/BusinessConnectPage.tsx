@@ -1,3 +1,4 @@
+import { useBackend } from '../../app/BackendProvider';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
@@ -20,37 +21,46 @@ function readDemo() {
 }
 
 export function BusinessConnectPage() {
-  const [initial] = useState(readDemo);
-  const [connection, setConnection] = useState<DemoConnection | null>(initial.connection);
-  const [corrupted, setCorrupted] = useState(initial.corrupted);
+  const backend = useBackend();
+  const [initial] = useState(() => backend ? { connection: null, corrupted: false, error: '' } : readDemo());
+  const [localConnection, setConnection] = useState<DemoConnection | null>(initial.connection);
+  const [localCorrupted, setCorrupted] = useState(initial.corrupted);
   const [companyName, setCompanyName] = useState('ООО Демо Маркет');
   const [tariffId, setTariffId] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get('tariff');
     return tariffs.some(item => item.id === requested) ? requested! : 'plus';
   });
-  const [error, setError] = useState(initial.error);
+  const [error, setError] = useState(backend ? '' : initial.error);
   const [resetRequested, setResetRequested] = useState(false);
+  const connection = backend ? backend.connection : localConnection;
+  const corrupted = backend ? false : localCorrupted;
   const tariff = tariffs.find(item => item.id === (connection?.subscription.tariffId ?? tariffId))!;
 
   useEffect(() => {
+    if (backend) return;
     const refresh = () => {
       const latest = readDemo();
       setConnection(latest.connection); setCorrupted(latest.corrupted); setError(latest.error); setResetRequested(false);
     };
     window.addEventListener('storage', refresh); window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
-  }, []);
+  }, [backend]);
 
-  function createInvoice(event: FormEvent<HTMLFormElement>) {
+  async function createInvoice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (connection) return;
-    try { setConnection(createStoredConnection(companyName, tariffId)); setError(''); }
+    try {
+      if (backend) await backend.connect(companyName, tariffId);
+      else setConnection(createStoredConnection(companyName, tariffId));
+      setError('');
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось создать тестовый счёт.'); }
   }
 
-  function resetDemo() {
+  async function resetDemo() {
     try {
-      resetStoredConnection(connection?.company.id ?? null);
+      if (backend && connection) await backend.reset(connection.company.id);
+      else if (!backend) resetStoredConnection(connection?.company.id ?? null);
       setConnection(null);
       setCorrupted(false);
       setResetRequested(false);
@@ -58,11 +68,11 @@ export function BusinessConnectPage() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось сбросить демо. Проверьте хранилище браузера.'); }
   }
 
-  function payDemo() {
+  async function payDemo() {
     if (!connection) return;
     try {
-      const paid = payStoredInvoice(connection.company.id, connection.invoice.id);
-      setConnection(paid);
+      if (backend) await backend.pay(connection.invoice.id);
+      else setConnection(payStoredInvoice(connection.company.id, connection.invoice.id));
       setError('');
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось выполнить демо-оплату.'); }
   }
@@ -87,7 +97,7 @@ export function BusinessConnectPage() {
             <strong>{money(plan.price * 100)}<small> / мес.</small></strong>
           </label>)}</fieldset>
           <p className="field-hint">Лимит ограничивает сумму преимуществ за месяц. Неиспользованный остаток не переносится. Все цены и преимущества — модельные допущения.</p>
-          <button className="button primary" type="submit" disabled={corrupted}>Создать тестовый счёт</button>
+          <button className="button primary" type="submit" disabled={corrupted || backend?.busy}>Создать тестовый счёт</button>
         </div>
         <aside className="connect-summary" aria-label="Условия выбранного тарифа"><h2>{tariff.name}</h2><dl>
           <div><dt>Подписка на месяц</dt><dd>{money(tariff.price * 100)}</dd></div>
@@ -96,7 +106,7 @@ export function BusinessConnectPage() {
           <div><dt>Скидка на отправление</dt><dd>{money(tariff.shippingDiscount * 100)}</dd></div>
           <div><dt>Скидка на упаковку</dt><dd>{tariff.packagingDiscount ? money(tariff.packagingDiscount * 100) : 'Не включена'}</dd></div>
         </dl></aside>
-      </form> : <div className="connection-invoice"><BusinessInvoiceCard connection={connection} onPay={payDemo}/>
+      </form> : <div className="connection-invoice"><BusinessInvoiceCard connection={connection} onPay={payDemo} busy={backend?.busy}/>
         <a className="inline-link invoice-list-link" href="/business/invoices">Все счета компании</a>
         <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить демо-компанию, сотрудников, назначения, операции и счёт?</p><button className="button secondary" onClick={resetDemo}>Да, начать заново</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Начать демо заново</button>}</div>
       </div>}

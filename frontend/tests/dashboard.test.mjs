@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createConnection, payConnection } from '../src/features/business/connection.ts';
 import { getDashboard } from '../src/features/business/dashboard.ts';
+import { parseConnection } from '../src/features/business/connection.ts';
 
 test('До оплаты нет доступного лимита и не учитывается неоплаченная подписка', () => {
   const summary = getDashboard(createConnection('Демо', 'plus'));
@@ -28,4 +29,17 @@ test('В момент окончания периода лимит станов�
   assert.equal(summary.availableKopecks, 0);
   assert.equal(summary.feeKopecks, 99000);
   assert.equal(summary.netKopecks, -99000);
+});
+
+test('Серверные paused/cancelled статусы сохраняются и запрещают доступный лимит', () => {
+  const paid = payConnection(createConnection('Демо', 'plus'), new Date('2026-11-26T12:00:00Z'));
+  for (const status of ['paused', 'cancelled']) {
+    paid.subscription.status = status;
+    const restored = parseConnection(JSON.stringify(paid));
+    assert.ok(restored);
+    const view = getDashboard(restored, new Date('2026-11-27T12:00:00Z'));
+    assert.equal(view.status, status);
+    assert.equal(view.availableKopecks, 0);
+    assert.equal(view.feeKopecks, 249000);
+  }
 });

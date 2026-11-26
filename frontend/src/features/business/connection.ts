@@ -13,7 +13,7 @@ export type DemoConnection = {
   subscription: {
     id: string;
     tariffId: string;
-    status: 'pending_payment' | 'active';
+    status: 'pending_payment' | 'active' | 'paused' | 'cancelled' | 'expired';
     startedAt: string | null;
     expiresAt: string | null;
   };
@@ -74,7 +74,7 @@ export function parseConnection(raw: string | null): DemoConnection | null {
       || !validDate(data.invoice.createdAt)) return null;
     const pending = data.invoice.status === 'pending' && data.subscription.status === 'pending_payment'
       && data.invoice.paidAt === null && data.subscription.startedAt === null && data.subscription.expiresAt === null;
-    const active = data.invoice.status === 'paid' && data.subscription.status === 'active'
+    const active = data.invoice.status === 'paid' && ['active', 'paused', 'cancelled', 'expired'].includes(data.subscription.status)
       && validDate(data.invoice.paidAt) && validDate(data.subscription.startedAt) && validDate(data.subscription.expiresAt)
       && Date.parse(data.subscription.expiresAt!) > Date.parse(data.subscription.startedAt!);
     // Совместимость с демо-компаниями, сохранёнными до страницы сотрудников.

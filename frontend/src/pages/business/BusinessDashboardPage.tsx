@@ -1,3 +1,4 @@
+import { useBackend } from '../../app/BackendProvider';
 import { useEffect, useState } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
 import { BusinessSidebar } from '../../components/BusinessSidebar';
@@ -14,16 +15,18 @@ function readConnection() {
 }
 
 export function BusinessDashboardPage() {
-  const [stored, setStored] = useState(readConnection);
+  const backend = useBackend();
+  const [stored, setStored] = useState(() => backend ? { connection: null, error: false } : readConnection());
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const refresh = () => { setStored(readConnection()); setNow(new Date()); };
+    const refresh = () => { if (!backend) setStored(readConnection()); setNow(new Date()); };
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); window.clearInterval(timer); };
   }, []);
-  const { connection, error } = stored;
+  const connection = backend ? backend.connection : stored.connection;
+  const error = backend ? false : stored.error;
   const dashboard = getDashboard(connection, now);
 
   return <>
@@ -37,7 +40,7 @@ export function BusinessDashboardPage() {
       <BusinessSidebar current="dashboard"/>
       <main id="main" className="dashboard-main">
         <div className="dashboard-heading"><div><p className="company-label">{connection.company.name}</p><h1>Обзор компании</h1></div><span className={`invoice-status ${dashboard.status === 'active' ? 'paid' : ''}`}>
-          {dashboard.status === 'active' ? 'Подписка активна' : dashboard.status === 'expired' ? 'Срок подписки истёк' : 'Ожидает оплаты'}
+          {{ active: 'Подписка активна', expired: 'Срок подписки истёк', pending_payment: 'Ожидает оплаты', paused: 'Подписка на паузе', cancelled: 'Подписка отменена' }[dashboard.status]}
         </span></div>
         <p className="field-hint">Демо-кабинет администратора. Цены и преимущества — модельные допущения.</p>
         {dashboard.status === 'pending_payment' && <div className="dashboard-notice"><p>Оплатите тестовый счёт, чтобы активировать преимущества компании.</p><a className="button primary" href="/business/invoices">К демо-оплате</a></div>}

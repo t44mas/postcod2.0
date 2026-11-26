@@ -1,3 +1,4 @@
+import { useBackend } from '../../app/BackendProvider';
 import { useEffect, useState } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
 import { BusinessSidebar } from '../../components/BusinessSidebar';
@@ -13,19 +14,20 @@ function readCompany() {
 }
 
 export function BusinessOperationsPage() {
-  const [stored, setStored] = useState(readCompany);
+  const backend = useBackend();
+  const [stored, setStored] = useState(() => backend ? { connection: null, error: '' } : readCompany());
   const [mode, setMode] = useState('admin');
   const [employeeId, setEmployeeId] = useState('');
   const [personaId, setPersonaId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   useEffect(() => {
-    const refresh = () => setStored(readCompany());
+    const refresh = () => { if (!backend) setStored(readCompany()); };
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
   }, []);
-  const { connection } = stored;
+  const connection = backend ? backend.connection : stored.connection;
   const persona = connection?.employees.find(item => item.id === personaId) ?? connection?.employees[0];
   let operations: ReturnType<typeof getOperations> = [];
   let filterError = '';
@@ -39,13 +41,13 @@ export function BusinessOperationsPage() {
 
   return <>
     <a className="skip-link" href="#main">Перейти к содержимому</a><SiteHeader audience="business"/>
-    {!connection ? <main id="main" className="container section dashboard-empty"><h1>Операции</h1>{stored.error ? <p role="alert">{stored.error}</p> : <><p>Сначала подключите демо-компанию. Здесь появится история использования её преимуществ.</p><a className="button primary" href="/business/connect">Подключить компанию</a></>}</main>
+    {!connection ? <main id="main" className="container section dashboard-empty"><h1>Операции</h1>{(!backend && stored.error) ? <p role="alert">{stored.error}</p> : <><p>Сначала подключите демо-компанию. Здесь появится история использования её преимуществ.</p><a className="button primary" href="/business/connect">Подключить компанию</a></>}</main>
       : <div className="container dashboard-layout"><BusinessSidebar current="operations"/><main id="main" className="dashboard-main operations-page">
         <p className="company-label">{connection.company.name}</p><h1>Операции</h1><p className="field-hint">История успешных применений преимуществ. Даты и фильтры — по московскому времени.</p>
         <div className="operations-viewer"><label>Демо-роль<select value={mode} onChange={event => setMode(event.target.value)}><option value="admin">Администратор</option><option value="employee">Сотрудник</option></select></label>
           {mode === 'employee' && !!connection.employees.length && <label>Демо-сотрудник<select value={persona?.id} onChange={event => setPersonaId(event.target.value)}>{connection.employees.map(item => <option key={item.id} value={item.id}>{item.name}{item.status === 'disabled' ? ' (отключён)' : ''}</option>)}</select></label>}
         </div>
-        {mode === 'employee' && <p className="field-hint">{persona ? `Показана только история сотрудника ${persona.name}.` : 'Сотрудники ещё не добавлены.'} Выбор персоны — часть демо, без настоящей авторизации.</p>}
+        {mode === 'employee' && <p className="field-hint">{persona ? `Показана только история сотрудника ${persona.name}.` : 'Сотрудники ещё не добавлены.'} Выбор персоны — часть демонстрации.</p>}
         <section className="dashboard-panel operations-filter-panel" aria-labelledby="filters-heading"><h2 id="filters-heading">Фильтры</h2><div className="operations-filters">
           {mode === 'admin' && <label>Сотрудник<select value={employeeId} onChange={event => setEmployeeId(event.target.value)}><option value="">Все сотрудники</option>{connection.employees.map(item => <option key={item.id} value={item.id}>{item.name}{item.status === 'disabled' ? ' (отключён)' : ''}</option>)}</select></label>}
           <label>С даты<input type="date" value={from} onChange={event => setFrom(event.target.value)}/></label><label>По дату включительно<input type="date" value={to} onChange={event => setTo(event.target.value)}/></label>

@@ -1,3 +1,4 @@
+import { useBackend } from '../../app/BackendProvider';
 import { useEffect, useState } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
 import { BusinessSidebar } from '../../components/BusinessSidebar';
@@ -14,19 +15,20 @@ function readCompany() {
 }
 
 export function BusinessReportsPage() {
-  const [stored, setStored] = useState(readCompany);
+  const backend = useBackend();
+  const [stored, setStored] = useState(() => backend ? { connection: null, error: '' } : readCompany());
   const [role, setRole] = useState<'admin' | 'employee'>('admin');
   const [employeeId, setEmployeeId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const refresh = () => { setStored(readCompany()); setNow(new Date()); };
+    const refresh = () => { if (!backend) setStored(readCompany()); setNow(new Date()); };
     window.addEventListener('storage', refresh); window.addEventListener('focus', refresh);
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); window.clearInterval(timer); };
   }, []);
-  const { connection } = stored;
+  const connection = backend ? backend.connection : stored.connection;
   let report: ReturnType<typeof getCompanyReport> | null = null;
   let filterError = '';
   if (connection && role === 'admin') {
@@ -38,11 +40,11 @@ export function BusinessReportsPage() {
 
   return <>
     <a className="skip-link" href="#main">Перейти к содержимому</a><SiteHeader audience="business"/>
-    {!connection ? <main id="main" className="container section dashboard-empty"><h1>Отчёты</h1>{stored.error ? <p role="alert">{stored.error}</p> : <><p>Сначала подключите демо-компанию. Отчёт будет рассчитан по её подписке и операциям.</p><a className="button primary" href="/business/connect">Подключить компанию</a></>}</main>
+    {!connection ? <main id="main" className="container section dashboard-empty"><h1>Отчёты</h1>{(!backend && stored.error) ? <p role="alert">{stored.error}</p> : <><p>Сначала подключите демо-компанию. Отчёт будет рассчитан по её подписке и операциям.</p><a className="button primary" href="/business/connect">Подключить компанию</a></>}</main>
       : <div className="container dashboard-layout"><BusinessSidebar current="reports"/><main id="main" className="dashboard-main reports-page">
         <p className="company-label">{connection.company.name}</p><h1>Отчёты</h1>
         <div className="operations-viewer"><label>Демо-роль<select value={role} onChange={event => setRole(event.target.value as 'admin' | 'employee')}><option value="admin">Администратор</option><option value="employee">Сотрудник</option></select></label></div>
-        <p className="field-hint">Демонстрационный кабинет. Роли переключаются для проверки сценария, настоящая авторизация пока не подключена.</p>
+        <p className="field-hint">Демонстрационный кабинет. Роли переключаются для проверки сценария.</p>
         {role === 'employee' ? <div className="dashboard-notice" role="status"><p>Отчёт компании доступен только администратору.</p></div> : totals && <>
           <section aria-labelledby="subscription-totals"><h2 id="subscription-totals" className="report-section-title">Итоги подписки компании</h2>
             <p className="field-hint">{totals.tariff.name} · {connection.subscription.startedAt ? `${date(connection.subscription.startedAt)} — ${date(connection.subscription.expiresAt!)}` : 'Подписка ещё не оплачена'}</p>
