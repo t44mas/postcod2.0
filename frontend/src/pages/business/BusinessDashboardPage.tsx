@@ -57,7 +57,7 @@ export function BusinessDashboardPage() {
         <section className="dashboard-panel" aria-labelledby="events-heading"><h2 id="events-heading">Последние события</h2><ol className="dashboard-events">
           {connection.invoice.paidAt && <li><div><strong>Подписка {dashboard.tariff.name} активирована</strong><p>Тестовый счёт оплачен: {money(connection.invoice.amountKopecks)}.</p></div><time dateTime={connection.invoice.paidAt}>{dateTime(connection.invoice.paidAt)} МСК</time></li>}
           <li><div><strong>Тестовый счёт создан</strong><p>{dashboard.tariff.name} · {money(connection.invoice.amountKopecks)}</p></div><time dateTime={connection.invoice.createdAt}>{dateTime(connection.invoice.createdAt)} МСК</time></li>
-        </ol><p className="field-hint">{connection.benefitUsages.length ? `Успешных операций с преимуществами: ${connection.benefitUsages.length}.` : 'Операций с преимуществами пока нет.'}</p><a className="plain-button" href="/business/benefits">Открыть бонусы и лимиты</a></section>
+        </ol><p className="field-hint">{connection.benefitUsages.length ? `Успешных операций с преимуществами: ${connection.benefitUsages.length}.` : 'Операций с преимуществами пока нет.'}</p><a className="plain-button" href="/business/operations">Открыть журнал операций</a></section>
       </main>
     </div>}
   </>;
