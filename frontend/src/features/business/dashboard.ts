@@ -1,5 +1,6 @@
 import type { DemoConnection } from './connection';
 import { tariffs } from './tariffs.mjs';
+import { usedBenefit } from './benefits.ts';
 
 export function getDashboard(connection: DemoConnection | null, now = new Date()) {
   if (!connection) return null;
@@ -7,9 +8,8 @@ export function getDashboard(connection: DemoConnection | null, now = new Date()
   const paid = connection.invoice.status === 'paid';
   const expired = paid && Date.parse(connection.subscription.expiresAt!) <= now.getTime();
   const status = !paid ? 'pending_payment' : expired ? 'expired' : 'active';
-  // Операции будут подключены на этапе преимуществ.
-  const usedKopecks = 0;
-  const savingsKopecks = 0;
+  const usedKopecks = usedBenefit(connection);
+  const savingsKopecks = usedKopecks;
   const feeKopecks = paid ? connection.invoice.amountKopecks : 0;
   return {
     tariff,

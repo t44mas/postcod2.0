@@ -81,7 +81,7 @@ export function BusinessEmployeesPage() {
             <button type="submit" className="button primary" disabled={activeCount >= tariff.employees}>Добавить</button>
           </form>
           {activeCount >= tariff.employees && <p className="field-hint">Достигнут лимит тарифа. Отключите одного из сотрудников, чтобы добавить другого.</p>}
-          <p className="field-hint">Администратор управляет компанией; сотрудник использует назначенные преимущества. Настройка преимуществ и лимитов — на следующей странице.</p>
+          <p className="field-hint">Администратор управляет компанией; сотрудник использует назначенные преимущества. <a className="inline-link" href="/business/benefits">Настроить преимущества и лимиты</a>.</p>
         </section>
 
         <section className="dashboard-panel employee-list" aria-labelledby="list-heading"><h2 id="list-heading">Команда компании</h2>

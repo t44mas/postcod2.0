@@ -4,7 +4,7 @@ import { BusinessSidebar } from '../../components/BusinessSidebar';
 import { connectionKey, parseConnection } from '../../features/business/connection';
 import { getDashboard } from '../../features/business/dashboard';
 
-const money = (kopecks: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(kopecks / 100);
+const money = (kopecks: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(kopecks / 100);
 const date = (value: string) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value));
 const dateTime = (value: string) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 
@@ -47,7 +47,7 @@ export function BusinessDashboardPage() {
           <article className="dashboard-kpi"><h2>Тариф</h2><strong className="tariff-kpi">{dashboard.tariff.name}</strong><p>{money(dashboard.tariff.price * 100)} / месяц</p><small>{connection.subscription.startedAt ? <>{date(connection.subscription.startedAt)} — {date(connection.subscription.expiresAt!)}</> : 'Месяц с момента демо-оплаты'}</small></article>
           <article className="dashboard-kpi"><h2>Сотрудники</h2><strong>{dashboard.employees} <small>из {dashboard.tariff.employees}</small></strong><p>Подключённых сотрудников</p><small>Администратор пока не назначал преимущества.</small></article>
           <article className="dashboard-kpi"><h2>Доступный лимит</h2><strong>{money(dashboard.availableKopecks)}</strong><p>Из {money(dashboard.tariff.cap * 100)} за период</p><small>{dashboard.status === 'active' ? 'Ограничение суммы преимуществ.' : 'Доступен только при активной подписке.'}</small></article>
-          <article className="dashboard-kpi"><h2>Чистая выгода</h2><strong className={dashboard.netKopecks < 0 ? 'negative-value' : ''}>{money(dashboard.netKopecks)}</strong><p>Преимущества минус подписка</p><small>{dashboard.netKopecks < 0 ? 'Преимущества ещё не использовались, стоимость подписки учтена.' : 'Счёт пока не оплачен, расходов нет.'}</small></article>
+          <article className="dashboard-kpi"><h2>Чистая выгода</h2><strong className={dashboard.netKopecks < 0 ? 'negative-value' : ''}>{money(dashboard.netKopecks)}</strong><p>Преимущества минус подписка</p><small>{dashboard.feeKopecks ? dashboard.netKopecks < 0 ? 'Подписка пока не окупилась. Стоимость и все применённые скидки учтены.' : 'Применённые скидки покрывают стоимость подписки.' : 'Счёт пока не оплачен, расходов нет.'}</small></article>
         </section>
 
         <section className="dashboard-panel" aria-labelledby="limit-heading"><h2 id="limit-heading">Расход лимита</h2><div className="limit-heading"><span>Использовано {money(dashboard.usedKopecks)}</span><span>Лимит {money(dashboard.tariff.cap * 100)}</span></div><progress className="limit-progress" value={dashboard.usedKopecks} max={dashboard.tariff.cap * 100} aria-label="Использовано лимита преимуществ"/><p className="field-hint">Лимит — это доступная выгода от преимуществ, а не денежный баланс. Неиспользованный остаток не переносится.</p><dl className="dashboard-economy"><div><dt>Применённые преимущества</dt><dd>{money(dashboard.savingsKopecks)}</dd></div><div><dt>Оплаченная подписка</dt><dd>{money(dashboard.feeKopecks)}</dd></div><div><dt>Чистая выгода</dt><dd>{money(dashboard.netKopecks)}</dd></div></dl></section>
@@ -57,7 +57,7 @@ export function BusinessDashboardPage() {
         <section className="dashboard-panel" aria-labelledby="events-heading"><h2 id="events-heading">Последние события</h2><ol className="dashboard-events">
           {connection.invoice.paidAt && <li><div><strong>Подписка {dashboard.tariff.name} активирована</strong><p>Тестовый счёт оплачен: {money(connection.invoice.amountKopecks)}.</p></div><time dateTime={connection.invoice.paidAt}>{dateTime(connection.invoice.paidAt)} МСК</time></li>}
           <li><div><strong>Тестовый счёт создан</strong><p>{dashboard.tariff.name} · {money(connection.invoice.amountKopecks)}</p></div><time dateTime={connection.invoice.createdAt}>{dateTime(connection.invoice.createdAt)} МСК</time></li>
-        </ol><p className="field-hint">Операций с преимуществами пока нет.</p></section>
+        </ol><p className="field-hint">{connection.benefitUsages.length ? `Успешных операций с преимуществами: ${connection.benefitUsages.length}.` : 'Операций с преимуществами пока нет.'}</p><a className="plain-button" href="/business/benefits">Открыть бонусы и лимиты</a></section>
       </main>
     </div>}
   </>;

@@ -1,11 +1,15 @@
 import { tariffs } from './tariffs.mjs';
 import { validEmployees } from './employees.ts';
 import type { Employee } from './employees';
+import { validBenefits } from './benefits.ts';
+import type { BenefitGrant, BenefitUsage } from './benefits';
 
 export type DemoConnection = {
   version: 1;
   company: { id: string; name: string; status: 'active' };
   employees: Employee[];
+  benefitGrants: BenefitGrant[];
+  benefitUsages: BenefitUsage[];
   subscription: {
     id: string;
     tariffId: string;
@@ -34,6 +38,8 @@ export function createConnection(name: string, tariffId: string, now = new Date(
     version: 1,
     company: { id: crypto.randomUUID(), name: companyName, status: 'active' },
     employees: [],
+    benefitGrants: [],
+    benefitUsages: [],
     subscription: { id: crypto.randomUUID(), tariffId, status: 'pending_payment', startedAt: null, expiresAt: null },
     invoice: { id: crypto.randomUUID(), amountKopecks: tariff.price * 100, currency: 'RUB', status: 'pending', createdAt: now.toISOString(), paidAt: null },
   };
@@ -74,6 +80,7 @@ export function parseConnection(raw: string | null): DemoConnection | null {
     // Совместимость с демо-компаниями, сохранёнными до страницы сотрудников.
     const employees = data.employees === undefined ? [] : data.employees;
     if (!validEmployees(employees, data.company.id, tariff.employees)) return null;
-    return pending || active ? { ...data, employees } : null;
+    const result = { ...data, employees, benefitGrants: data.benefitGrants === undefined ? [] : data.benefitGrants, benefitUsages: data.benefitUsages === undefined ? [] : data.benefitUsages };
+    return (pending || active) && validBenefits(result) ? result : null;
   } catch { return null; }
 }

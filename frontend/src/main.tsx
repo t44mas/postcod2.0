@@ -8,6 +8,7 @@ import { BusinessPage } from './pages/business/BusinessPage';
 import { BusinessConnectPage } from './pages/business/BusinessConnectPage';
 import { BusinessDashboardPage } from './pages/business/BusinessDashboardPage';
 import { BusinessEmployeesPage } from './pages/business/BusinessEmployeesPage';
+import { BusinessBenefitsPage } from './pages/business/BusinessBenefitsPage';
 import { PersonalPlaceholder } from './pages/personal/PersonalPlaceholder';
 import './styles.css';
 
@@ -16,8 +17,9 @@ const isPersonal = path === '/personal';
 const isConnect = path === '/business/connect';
 const isDashboard = path === '/business/dashboard';
 const isEmployees = path === '/business/employees';
-document.title = isPersonal ? 'Почта Премиум — частным лицам' : isConnect ? 'Подключение компании — Почта Премиум' : isEmployees ? 'Сотрудники — Почта Премиум' : isDashboard ? 'Кабинет компании — Почта Премиум' : 'Почта Премиум — для бизнеса';
+const isBenefits = path === '/business/benefits';
+document.title = isPersonal ? 'Почта Премиум — частным лицам' : isConnect ? 'Подключение компании — Почта Премиум' : isEmployees ? 'Сотрудники — Почта Премиум' : isBenefits ? 'Бонусы и лимиты — Почта Премиум' : isDashboard ? 'Кабинет компании — Почта Премиум' : 'Почта Премиум — для бизнеса';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>{isPersonal ? <PersonalPlaceholder/> : isConnect ? <BusinessConnectPage/> : isEmployees ? <BusinessEmployeesPage/> : isDashboard ? <BusinessDashboardPage/> : <BusinessPage/>}</React.StrictMode>,
+  <React.StrictMode>{isPersonal ? <PersonalPlaceholder/> : isConnect ? <BusinessConnectPage/> : isEmployees ? <BusinessEmployeesPage/> : isBenefits ? <BusinessBenefitsPage/> : isDashboard ? <BusinessDashboardPage/> : <BusinessPage/>}</React.StrictMode>,
 );
