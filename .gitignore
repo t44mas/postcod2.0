@@ -11,5 +11,3 @@ __pycache__/
 *.pyc
 backend/.env
 .pip-cache/
-# Local Codex working notes
-/LEARNING.md
