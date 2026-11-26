@@ -12,6 +12,7 @@ import { BusinessBenefitsPage } from './pages/business/BusinessBenefitsPage';
 import { BusinessInvoicesPage } from './pages/business/BusinessInvoicesPage';
 import { BusinessOperationsPage } from './pages/business/BusinessOperationsPage';
 import { BusinessReportsPage } from './pages/business/BusinessReportsPage';
+import { BusinessEconomicsPage } from './pages/business/BusinessEconomicsPage';
 import { PersonalPlaceholder } from './pages/personal/PersonalPlaceholder';
 import './styles.css';
 
@@ -24,8 +25,9 @@ const isBenefits = path === '/business/benefits';
 const isInvoices = path === '/business/invoices';
 const isOperations = path === '/business/operations';
 const isReports = path === '/business/reports';
-document.title = isPersonal ? 'Почта Премиум — частным лицам' : isConnect ? 'Подключение компании — Почта Премиум' : isEmployees ? 'Сотрудники — Почта Премиум' : isBenefits ? 'Бонусы и лимиты — Почта Премиум' : isInvoices ? 'Счета — Почта Премиум' : isOperations ? 'Операции — Почта Премиум' : isReports ? 'Отчёты — Почта Премиум' : isDashboard ? 'Кабинет компании — Почта Премиум' : 'Почта Премиум — для бизнеса';
+const isEconomics = path === '/business/economics';
+document.title = isPersonal ? 'Почта Премиум — частным лицам' : isConnect ? 'Подключение компании — Почта Премиум' : isEmployees ? 'Сотрудники — Почта Премиум' : isBenefits ? 'Бонусы и лимиты — Почта Премиум' : isInvoices ? 'Счета — Почта Премиум' : isOperations ? 'Операции — Почта Премиум' : isReports ? 'Отчёты — Почта Премиум' : isEconomics ? 'Экономика — Почта Премиум' : isDashboard ? 'Кабинет компании — Почта Премиум' : 'Почта Премиум — для бизнеса';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>{isPersonal ? <PersonalPlaceholder/> : isConnect ? <BusinessConnectPage/> : isEmployees ? <BusinessEmployeesPage/> : isBenefits ? <BusinessBenefitsPage/> : isInvoices ? <BusinessInvoicesPage/> : isOperations ? <BusinessOperationsPage/> : isReports ? <BusinessReportsPage/> : isDashboard ? <BusinessDashboardPage/> : <BusinessPage/>}</React.StrictMode>,
+  <React.StrictMode>{isPersonal ? <PersonalPlaceholder/> : isConnect ? <BusinessConnectPage/> : isEmployees ? <BusinessEmployeesPage/> : isBenefits ? <BusinessBenefitsPage/> : isInvoices ? <BusinessInvoicesPage/> : isOperations ? <BusinessOperationsPage/> : isReports ? <BusinessReportsPage/> : isEconomics ? <BusinessEconomicsPage/> : isDashboard ? <BusinessDashboardPage/> : <BusinessPage/>}</React.StrictMode>,
 );
