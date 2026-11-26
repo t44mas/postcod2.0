@@ -1,8 +1,11 @@
 import { tariffs } from './tariffs.mjs';
+import { validEmployees } from './employees.ts';
+import type { Employee } from './employees';
 
 export type DemoConnection = {
   version: 1;
   company: { id: string; name: string; status: 'active' };
+  employees: Employee[];
   subscription: {
     id: string;
     tariffId: string;
@@ -30,6 +33,7 @@ export function createConnection(name: string, tariffId: string, now = new Date(
   return {
     version: 1,
     company: { id: crypto.randomUUID(), name: companyName, status: 'active' },
+    employees: [],
     subscription: { id: crypto.randomUUID(), tariffId, status: 'pending_payment', startedAt: null, expiresAt: null },
     invoice: { id: crypto.randomUUID(), amountKopecks: tariff.price * 100, currency: 'RUB', status: 'pending', createdAt: now.toISOString(), paidAt: null },
   };
@@ -67,6 +71,9 @@ export function parseConnection(raw: string | null): DemoConnection | null {
     const active = data.invoice.status === 'paid' && data.subscription.status === 'active'
       && validDate(data.invoice.paidAt) && validDate(data.subscription.startedAt) && validDate(data.subscription.expiresAt)
       && Date.parse(data.subscription.expiresAt!) > Date.parse(data.subscription.startedAt!);
-    return pending || active ? data : null;
+    // Совместимость с демо-компаниями, сохранёнными до страницы сотрудников.
+    const employees = data.employees === undefined ? [] : data.employees;
+    if (!validEmployees(employees, data.company.id, tariff.employees)) return null;
+    return pending || active ? { ...data, employees } : null;
   } catch { return null; }
 }

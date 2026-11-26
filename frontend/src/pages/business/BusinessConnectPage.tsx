@@ -48,6 +48,18 @@ export function BusinessConnectPage() {
     } catch { setError('Не удалось сбросить демо. Проверьте доступ к хранилищу браузера.'); }
   }
 
+  function payDemo() {
+    try {
+      const latest = parseConnection(localStorage.getItem(connectionKey));
+      if (!latest || latest.subscription.id !== connection?.subscription.id) {
+        setError('Демо-подписка изменилась. Обновите страницу.');
+        return;
+      }
+      // Сохраняем сотрудников, добавленных из другой вкладки после открытия счёта.
+      persist(payConnection(latest));
+    } catch { setError('Не удалось прочитать данные демо-оплаты. Проверьте хранилище браузера.'); }
+  }
+
   return <>
     <a className="skip-link" href="#main">Перейти к содержимому</a>
     <SiteHeader audience="business"/>
@@ -87,7 +99,7 @@ export function BusinessConnectPage() {
           <div><dt>К оплате</dt><dd><strong>{money(connection.invoice.amountKopecks)}</strong></dd></div>
         </dl>
         {isPaid ? <div className="activation-result" role="status"><h3>Подписка активна</h3><p>{connection.company.name} подключена к {tariff.name}.</p><p>Период: {date(connection.subscription.startedAt!)} — {date(connection.subscription.expiresAt!)}</p><a className="button primary" href="/business/dashboard">Перейти в кабинет компании</a></div>
-          : <><p className="field-hint">Это тестовый документ. Кнопка имитирует успешную оплату и активирует подписку на месяц. Банковские данные не требуются.</p><button className="button primary" onClick={() => persist(payConnection(connection))}>Оплатить (демо)</button></>}
+          : <><p className="field-hint">Это тестовый документ. Кнопка имитирует успешную оплату и активирует подписку на месяц. Банковские данные не требуются.</p><button className="button primary" onClick={payDemo}>Оплатить (демо)</button></>}
         <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить тестовый счёт и подписку этой демо-компании?</p><button className="button secondary" onClick={resetDemo}>Да, начать заново</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Начать демо заново</button>}</div>
       </section>}
     </main>

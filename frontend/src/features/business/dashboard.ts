@@ -7,15 +7,14 @@ export function getDashboard(connection: DemoConnection | null, now = new Date()
   const paid = connection.invoice.status === 'paid';
   const expired = paid && Date.parse(connection.subscription.expiresAt!) <= now.getTime();
   const status = !paid ? 'pending_payment' : expired ? 'expired' : 'active';
-  // Новая компания начинает с нулевой активности. Сотрудники и операции
-  // будут подключены на своих этапах; показатели не подменяются демо-числами.
+  // Операции будут подключены на этапе преимуществ.
   const usedKopecks = 0;
   const savingsKopecks = 0;
   const feeKopecks = paid ? connection.invoice.amountKopecks : 0;
   return {
     tariff,
     status,
-    employees: 0,
+    employees: connection.employees.filter(employee => employee.status === 'active').length,
     usedKopecks,
     availableKopecks: status === 'active' ? tariff.cap * 100 - usedKopecks : 0,
     savingsKopecks,

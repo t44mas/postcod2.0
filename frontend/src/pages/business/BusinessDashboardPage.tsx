@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
+import { BusinessSidebar } from '../../components/BusinessSidebar';
 import { connectionKey, parseConnection } from '../../features/business/connection';
 import { getDashboard } from '../../features/business/dashboard';
 
@@ -33,12 +34,7 @@ export function BusinessDashboardPage() {
       {error ? <p role="alert">Не удалось прочитать данные демо. Разрешите хранение данных в браузере и обновите страницу.</p>
         : <><p>Компания ещё не подключена. Выберите тариф и создайте тестовый счёт, чтобы открыть обзор подписки.</p><a className="button primary" href="/business#plans">Выбрать тариф</a></>}
     </main> : <div className="container dashboard-layout">
-      <aside className="business-sidebar"><nav aria-label="Разделы кабинета">
-        <a href="/business/dashboard" aria-current="page">Обзор</a>
-        {['Сотрудники', 'Бонусы и лимиты', 'Операции'].map(label => <span key={label} aria-disabled="true">{label}<small>Скоро</small></span>)}
-        <a href="/business/connect">Тестовый счёт</a>
-        <span aria-disabled="true">Отчёты<small>Скоро</small></span>
-      </nav></aside>
+      <BusinessSidebar current="dashboard"/>
       <main id="main" className="dashboard-main">
         <div className="dashboard-heading"><div><p className="company-label">{connection.company.name}</p><h1>Обзор компании</h1></div><span className={`invoice-status ${dashboard.status === 'active' ? 'paid' : ''}`}>
           {dashboard.status === 'active' ? 'Подписка активна' : dashboard.status === 'expired' ? 'Срок подписки истёк' : 'Ожидает оплаты'}
@@ -56,7 +52,7 @@ export function BusinessDashboardPage() {
 
         <section className="dashboard-panel" aria-labelledby="limit-heading"><h2 id="limit-heading">Расход лимита</h2><div className="limit-heading"><span>Использовано {money(dashboard.usedKopecks)}</span><span>Лимит {money(dashboard.tariff.cap * 100)}</span></div><progress className="limit-progress" value={dashboard.usedKopecks} max={dashboard.tariff.cap * 100} aria-label="Использовано лимита преимуществ"/><p className="field-hint">Лимит — это доступная выгода от преимуществ, а не денежный баланс. Неиспользованный остаток не переносится.</p><dl className="dashboard-economy"><div><dt>Применённые преимущества</dt><dd>{money(dashboard.savingsKopecks)}</dd></div><div><dt>Оплаченная подписка</dt><dd>{money(dashboard.feeKopecks)}</dd></div><div><dt>Чистая выгода</dt><dd>{money(dashboard.netKopecks)}</dd></div></dl></section>
 
-        <section className="dashboard-panel team-empty" aria-labelledby="team-heading"><h2 id="team-heading">Команда</h2><p>Сотрудники пока не добавлены.</p><button className="button secondary" disabled aria-describedby="employee-next-step">Добавить сотрудника</button><p id="employee-next-step" className="field-hint">Добавление сотрудников и назначение лимитов появятся на следующей странице.</p></section>
+        <section className="dashboard-panel team-empty" aria-labelledby="team-heading"><h2 id="team-heading">Команда</h2><p>{dashboard.employees ? `Активных сотрудников: ${dashboard.employees} из ${dashboard.tariff.employees}.` : 'Сотрудники пока не добавлены.'}</p><a className="button secondary" href="/business/employees#add-employee">Добавить сотрудника</a></section>
 
         <section className="dashboard-panel" aria-labelledby="events-heading"><h2 id="events-heading">Последние события</h2><ol className="dashboard-events">
           {connection.invoice.paidAt && <li><div><strong>Подписка {dashboard.tariff.name} активирована</strong><p>Тестовый счёт оплачен: {money(connection.invoice.amountKopecks)}.</p></div><time dateTime={connection.invoice.paidAt}>{dateTime(connection.invoice.paidAt)} МСК</time></li>}
