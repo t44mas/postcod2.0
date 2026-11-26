@@ -1,51 +1,61 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { SiteHeader } from '../../components/SiteHeader';
 import { BusinessInvoiceCard } from '../../components/BusinessInvoiceCard';
 import { payStoredInvoice } from '../../features/business/invoices';
 import { tariffs } from '../../features/business/tariffs.mjs';
-import { connectionKey, createConnection, parseConnection } from '../../features/business/connection';
+import { connectionKey, parseConnection } from '../../features/business/connection';
+import { createStoredConnection, resetStoredConnection } from '../../features/business/demoStorage';
 import type { DemoConnection } from '../../features/business/connection';
 
 const money = (kopecks: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(kopecks / 100);
 
+function readDemo() {
+  try {
+    const raw = localStorage.getItem(connectionKey);
+    const connection = parseConnection(raw);
+    const corrupted = raw !== null && connection === null;
+    return { connection, corrupted, error: corrupted ? 'Сохранённые демо-данные повреждены. Для нового подключения подтвердите их сброс.' : '' };
+  } catch { return { connection: null, corrupted: false, error: 'Не удалось прочитать демо. Проверьте доступ к хранилищу браузера.' }; }
+}
+
 export function BusinessConnectPage() {
-  const [connection, setConnection] = useState<DemoConnection | null>(() => {
-    try { return parseConnection(localStorage.getItem(connectionKey)); } catch { return null; }
-  });
+  const [initial] = useState(readDemo);
+  const [connection, setConnection] = useState<DemoConnection | null>(initial.connection);
+  const [corrupted, setCorrupted] = useState(initial.corrupted);
   const [companyName, setCompanyName] = useState('ООО Демо Маркет');
   const [tariffId, setTariffId] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get('tariff');
     return tariffs.some(item => item.id === requested) ? requested! : 'plus';
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initial.error);
   const [resetRequested, setResetRequested] = useState(false);
   const tariff = tariffs.find(item => item.id === (connection?.subscription.tariffId ?? tariffId))!;
 
-  function persist(next: DemoConnection) {
-    try {
-      localStorage.setItem(connectionKey, JSON.stringify(next));
-      setConnection(next);
-      setError('');
-    } catch {
-      setError('Не удалось сохранить демо. Разрешите хранение данных в браузере и повторите действие.');
-    }
-  }
+  useEffect(() => {
+    const refresh = () => {
+      const latest = readDemo();
+      setConnection(latest.connection); setCorrupted(latest.corrupted); setError(latest.error); setResetRequested(false);
+    };
+    window.addEventListener('storage', refresh); window.addEventListener('focus', refresh);
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener('focus', refresh); };
+  }, []);
 
   function createInvoice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (connection) return;
-    try { persist(createConnection(companyName, tariffId)); }
+    try { setConnection(createStoredConnection(companyName, tariffId)); setError(''); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось создать тестовый счёт.'); }
   }
 
   function resetDemo() {
     try {
-      localStorage.removeItem(connectionKey);
+      resetStoredConnection(connection?.company.id ?? null);
       setConnection(null);
+      setCorrupted(false);
       setResetRequested(false);
       setError('');
-    } catch { setError('Не удалось сбросить демо. Проверьте доступ к хранилищу браузера.'); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Не удалось сбросить демо. Проверьте хранилище браузера.'); }
   }
 
   function payDemo() {
@@ -65,6 +75,7 @@ export function BusinessConnectPage() {
       <h1>Подключение компании</h1>
       <p className="connect-note">Демонстрационный сценарий: используйте вымышленные данные. Деньги не списываются.</p>
       {error && <p className="form-error" role="alert">{error}</p>}
+      {corrupted && <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить повреждённые демо-данные этой компании?</p><button className="button secondary" onClick={resetDemo}>Подтвердить сброс</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Сбросить повреждённое демо</button>}</div>}
       {!connection ? <form className="connect-form" onSubmit={createInvoice}>
         <div className="connect-fields">
           <label htmlFor="company-name">Название демо-компании</label>
@@ -76,7 +87,7 @@ export function BusinessConnectPage() {
             <strong>{money(plan.price * 100)}<small> / мес.</small></strong>
           </label>)}</fieldset>
           <p className="field-hint">Лимит ограничивает сумму преимуществ за месяц. Неиспользованный остаток не переносится. Все цены и преимущества — модельные допущения.</p>
-          <button className="button primary" type="submit">Создать тестовый счёт</button>
+          <button className="button primary" type="submit" disabled={corrupted}>Создать тестовый счёт</button>
         </div>
         <aside className="connect-summary" aria-label="Условия выбранного тарифа"><h2>{tariff.name}</h2><dl>
           <div><dt>Подписка на месяц</dt><dd>{money(tariff.price * 100)}</dd></div>
@@ -87,7 +98,7 @@ export function BusinessConnectPage() {
         </dl></aside>
       </form> : <div className="connection-invoice"><BusinessInvoiceCard connection={connection} onPay={payDemo}/>
         <a className="inline-link invoice-list-link" href="/business/invoices">Все счета компании</a>
-        <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить тестовый счёт и подписку этой демо-компании?</p><button className="button secondary" onClick={resetDemo}>Да, начать заново</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Начать демо заново</button>}</div>
+        <div className="reset-section">{resetRequested ? <div className="reset-confirm"><p>Удалить демо-компанию, сотрудников, назначения, операции и счёт?</p><button className="button secondary" onClick={resetDemo}>Да, начать заново</button><button className="button" onClick={() => setResetRequested(false)}>Отмена</button></div> : <button className="plain-button" onClick={() => setResetRequested(true)}>Начать демо заново</button>}</div>
       </div>}
     </main>
   </>;
